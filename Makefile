@@ -1,8 +1,8 @@
-#	Carlos Alberto Schneider Junior
-#	NUSP: 9167910
-#	Turma: 2 (terça)
-#	Data de entrega: 24/03/2015
-#	Data Limite: 24/03/2015
+#	Grupo:
+#	Ana
+#	Carlos Alberto Schneider Junior		NUSP: 9167910
+#	Paul
+#	Renato
 
 EXEC=twttr
 SOURCES= main.c
