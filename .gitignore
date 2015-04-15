@@ -5,3 +5,8 @@
 twttr
 *.sublime-project
 *.sublime-workspace
+*~
+*.bak
+*.dep
+*.swp
+
