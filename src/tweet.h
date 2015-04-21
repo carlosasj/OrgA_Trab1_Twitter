@@ -23,12 +23,13 @@
  */
 typedef struct {
     uint32_t flags;             /* Flags used to store extra information */
-    uint32_t favs;              /* Favorite counter */
-    uint32_t views;             /* View counter */
-    uint32_t retweets;          /* Retweet counter */
+    uint32_t favorite_count;              /* Favorite counter */
+    uint32_t views_count;             /* View counter */
+    uint32_t retweet_count;          /* Retweet counter */
     char text[TW_TEXT_LEN];     /* Actual text of the tweet */
     char user[TW_USER_LEN];     /* Username of the author */
     char coordinates[TW_COORDINATES_LEN]; /* Location at the time of tweet */
+    char language[TW_LANG_LEN];
 } Tweet;
 
 #endif /* _TWEET_H_ */
