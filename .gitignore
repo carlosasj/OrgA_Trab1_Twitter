@@ -2,11 +2,11 @@
 *.pdf
 *.zip
 *.rar
-twttr
+*.tdb
 *.sublime-project
 *.sublime-workspace
 *~
 *.bak
 *.dep
 *.swp
-
+lab1

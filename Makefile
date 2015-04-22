@@ -41,7 +41,7 @@ $(EXEC): $(DEPS) $(OBJS)
 	$(CC) -MM -MT "$@ $(@:.dep=.o)" $(CPPFLAGS) $< -MF $@
 
 clean:
-	rm -f *.o *.dep $(EXEC)
+	rm -f *.o *.dep $(EXEC); rm -f src/database/*.tdb
 
 zip:
 	zip -r $(EXEC).zip $(SRCS) $(HDRS) Makefile 

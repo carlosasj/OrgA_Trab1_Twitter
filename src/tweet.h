@@ -17,6 +17,9 @@
 #define TW_COORDINATES_LEN (128)
 #define TW_LANG_LEN (16)
 
+/* Binary Length of the Tweet */
+#define TW_BIN_LEN ((TW_TEXT_LEN + TW_USER_LEN + TW_COORDINATES_LEN + TW_LANG_LEN)*sizeof(char) + 4*sizeof(uint32_t))
+
 /**
  * This struct represents a tweet. It is guaranteed to be "disk friendly" by
  * ensuring that the size is optimal to fit well inside the disk pages.
