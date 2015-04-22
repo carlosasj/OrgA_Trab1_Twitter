@@ -13,12 +13,9 @@
 #include <stddef.h>
 
 #define TW_TEXT_LEN (560)
-#define TW_USER_LEN (48)
+#define TW_USER_LEN (44)
 #define TW_COORDINATES_LEN (128)
 #define TW_LANG_LEN (16)
-
-/* Binary Length of the Tweet */
-#define TW_BIN_LEN ((TW_TEXT_LEN + TW_USER_LEN + TW_COORDINATES_LEN + TW_LANG_LEN)*sizeof(char) + 4*sizeof(uint32_t))
 
 /**
  * This struct represents a tweet. It is guaranteed to be "disk friendly" by
@@ -26,9 +23,10 @@
  */
 typedef struct {
     uint32_t flags;             /* Flags used to store extra information */
-    uint32_t favorite_count;              /* Favorite counter */
-    uint32_t views_count;             /* View counter */
-    uint32_t retweet_count;          /* Retweet counter */
+    uint32_t nextFreeEntry;     /* RRN of next free space on the data file */ 
+    uint32_t favs;              /* Favorite counter */
+    uint32_t views;             /* View counter */
+    uint32_t retweets;          /* Retweet counter */
     char text[TW_TEXT_LEN];     /* Actual text of the tweet */
     char user[TW_USER_LEN];     /* Username of the author */
     char coordinates[TW_COORDINATES_LEN]; /* Location at the time of tweet */
