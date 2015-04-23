@@ -21,7 +21,7 @@ Tweet *newTweet();
 
 int main( ) {
 	printLogo();
-	Database *db = CreateDatabase("src/database/", "teste.tdb");
+	Database *db = CreateDatabase("", "teste.tdb");
 	Tweet *tt = newTweet();
 	InsertTweet(db, tt);
 	free(tt);
@@ -43,9 +43,10 @@ void printLogo() {
 Tweet *newTweet(){
 	Tweet *tt = (Tweet *) calloc(1, sizeof(Tweet));
 	tt->flags = 0;
-	tt->favorite_count = 10;
-	tt->views_count = 100;
-	tt->retweet_count = 2;
+	tt->nextFreeEntry = 1;
+	tt->favs = 10;
+	tt->views = 100;
+	tt->retweets = 2;
 	strcpy(tt->text, "Texto muito legal aqui...");
 	strcpy(tt->user, "usuario01");
 	strcpy(tt->coordinates, "4 8 15 S 16 23 42 O");

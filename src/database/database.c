@@ -3,8 +3,6 @@
 #include <string.h>
 #include "database.h"
 
-#define CLR '&'	// Character "logically removed"
-
 struct _Database_t
 {
 	FILE *f;	/* File Pointer */
@@ -15,8 +13,6 @@ struct _Database_t
 
 const Database *CreateDatabase(const char *path, const char *name) {
 	if (path == NULL && name == NULL) { return NULL; }
-
-	char rm; // Character "logically removed"
 
 	Database *db = (Database *) malloc(sizeof(Database));
 	if (db == NULL) { return db; }
@@ -36,21 +32,25 @@ const Database *CreateDatabase(const char *path, const char *name) {
 	fseek(db->f, 0, SEEK_END);
 	db->nextFree =
 		db->nreg_log =
-		db->nreg_phys = (((uint32_t)ftell(db->f)) /((uint32_t) TW_BIN_LEN));
+		db->nreg_phys = (uint32_t) ((long int)ftell(db->f))/((long int)sizeof(Tweet));
 
 	/* Creates a pseudo-index, to easily insert new registers */
 	if (db->nreg_phys != 0){
 		uint32_t i = db->nreg_phys -1;
+		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
 		do{	// Read the registers backwards
-			fseek(db->f, (long int)(i*TW_BIN_LEN), SEEK_SET);
-			fread(&rm, sizeof(char), 1, db->f);
-			if (rm == CLR){							// If it's Logically Removed...
-				fwrite(&db->nextFree, sizeof(uint32_t), 1, db->f);	// ... write db->nextFree...
+			fseek(db->f, (long int)(i*sizeof(Tweet)), SEEK_SET);
+			fread(tt, sizeof(Tweet), 1, db->f);
+			if (tt->flags == REMOVED){						// If it's Logically Removed...
+				tt->nextFreeEntry = db->nextFree;			// ... set the nextFreeEntry...
+				fseek(db->f, (long int)(i*sizeof(Tweet)), SEEK_SET);
+				fwrite(tt, sizeof(Tweet), 1, db->f);		// ... write...
 				db->nreg_log--;
-				db->nextFree = i;					// ... and update db->nextFree.
+				db->nextFree = i;							// ... and update db->nextFree.
 			}
 			i--;
 		}while(i != 0);
+		free(tt);
 	}
 
 	return db;
@@ -70,18 +70,15 @@ int InsertTweet(Database *db, const Tweet *t) {
 		db->nreg_phys++;
 	}
 	else{	// Get the next free RRN
-		fseek(db->f, (long int)(rrn*TW_BIN_LEN + sizeof(char)), SEEK_SET);
-		fread(&db->nextFree, sizeof(uint32_t), 1, db->f);
+		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
+		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
+		fread(tt, sizeof(Tweet), 1, db->f);
+		db->nextFree = tt->nextFreeEntry;
+		free (tt);
 	}
 
-	fseek(db->f, (long int)(rrn*TW_BIN_LEN), SEEK_SET);
-	fwrite(t->user, sizeof(char), TW_USER_LEN, db->f);
-	fwrite(t->text, sizeof(char), TW_TEXT_LEN, db->f);
-	fwrite(t->coordinates, sizeof(char), TW_COORDINATES_LEN, db->f);
-	fwrite(&(t->favorite_count), sizeof(uint32_t), 1, db->f);
-	fwrite(t->language, sizeof(char), TW_LANG_LEN, db->f);
-	fwrite(&(t->retweet_count), sizeof(uint32_t), 1, db->f);
-	fwrite(&(t->views_count), sizeof(uint32_t), 1, db->f);
+	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
+	fwrite(t, sizeof(Tweet), 1, db->f);
 
 	db->nreg_log++;
 	return 0;
@@ -91,45 +88,10 @@ int GetTweet(Database *db, uint32_t rrn, Tweet *result) {
 	if (db == NULL || result == NULL) { return 1; }
 	if (rrn >= db->nreg_phys) { return 2; }
 
-	fseek(db->f, (long int)(rrn*TW_BIN_LEN), SEEK_SET);
-	fread(result->user, sizeof(char), TW_USER_LEN, db->f);
-	fread(result->text, sizeof(char), TW_TEXT_LEN, db->f);
-	fread(result->coordinates, sizeof(char), TW_COORDINATES_LEN, db->f);
-	fread(&result->favorite_count, sizeof(uint32_t), 1, db->f);
-	fread(result->language, sizeof(char), TW_LANG_LEN, db->f);
-	fread(&result->retweet_count, sizeof(uint32_t), 1, db->f);
-	fread(&result->views_count, sizeof(uint32_t), 1, db->f);
+	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
+	fread(&result, sizeof(Tweet), 1, db->f);
 	
 	return 0;
-}
-
-/*
- *	Return NULL if had any error; Return 0 if success.
- */
-int GetUserByRRN(Database *db, uint32_t rrn, char *result){
-	if (db == NULL || result == NULL) { return 1; }
-	if (rrn >= db->nreg_phys) { return 2; }
-
-	fseek(db->f, (long int)(rrn*TW_BIN_LEN), SEEK_SET);
-	fread(&result, sizeof(char), TW_USER_LEN, db->f);
-	return 0;
-}
-
-/*
- *	\param rrn RRN to start the search
- */
-uint32_t GetNextRRNforUser(Database *db, uint32_t rrn, char *user){
-	if (db == NULL || user == NULL) { return 1; }
-	if (rrn >= db->nreg_phys) { return 2; }
-
-	char result[TW_USER_LEN];
-
-	uint32_t i;
-	for (i = rrn; i < db->nreg_phys; i++){
-		GetUserByRRN(db, i, result);
-		if (result[0] == CLR) {}
-		else if (strcmp(user, result) == 0) { return i; }
-	}
 }
 
 int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nResults) {
@@ -145,17 +107,21 @@ int RemoveTweet(Database *db, uint32_t rrn){
 	if (db == NULL) { return 1; }
 	if (rrn >= db->nreg_phys) { return 2; }
 
-	char result[TW_USER_LEN];
-	GetUserByRRN(db, rrn, result);
-	if (result[0] == CLR) { return 0; }
+	Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
+	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
+	fread(tt, sizeof(Tweet), 1, db->f);
 
-	result[0] = CLR;
-	fseek(db->f, (long int)(rrn*TW_BIN_LEN), SEEK_SET);
-	fwrite(&result, sizeof(char), 1, db->f);
-	fwrite(&db->nextFree, sizeof(uint32_t), 1, db->f);
-	db->nextFree = rrn;
+	if (tt->flags == REMOVED) {}
+	else{
+		tt->flags = REMOVED;
+		tt->nextFreeEntry = db->nextFree;
+		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
+		fwrite(tt, sizeof(Tweet), 1, db->f);
+		db->nextFree = rrn;
 
-	db->nreg_log--;
+		db->nreg_log--;
+	}
 
+	free(tt);
 	return 0;
 }

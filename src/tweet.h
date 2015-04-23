@@ -17,6 +17,11 @@
 #define TW_COORDINATES_LEN (128)
 #define TW_LANG_LEN (16)
 
+enum flags {
+	ACTIVE,
+	REMOVED
+};
+
 /**
  * This struct represents a tweet. It is guaranteed to be "disk friendly" by
  * ensuring that the size is optimal to fit well inside the disk pages.
