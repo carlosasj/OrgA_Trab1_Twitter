@@ -28,7 +28,7 @@ Database *CreateDatabase(const char *path, const char *name) {
 
 	/* Open the File */
 	db->f = fopen(path_name, "rb+");
-	if (db->f == NULL) fopen(path_name, "wb+");
+	if (db->f == NULL) { db->f = fopen(path_name, "wb+"); }
 	free(path_name);
 	if (db->f == NULL) { FreeDatabase(db); return db; }
 
