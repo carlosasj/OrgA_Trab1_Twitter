@@ -47,7 +47,7 @@ zip:
 	zip -r $(EXEC).zip $(SRCS) $(HDRS) Makefile 
 
 run:
-	@./$(EXEC)
+	@./$(EXEC) data.tdb
 
 ifeq ($(MAKECMDGOALS),)
  -include $(DEPS)
