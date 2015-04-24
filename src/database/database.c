@@ -1,7 +1,10 @@
+#include "database.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "database.h"
+
+#include "../utils.h"
 
 struct _Database_t
 {
@@ -11,7 +14,7 @@ struct _Database_t
 	uint32_t nextFree;	/* Next Register "Free" (logically removed) || Next Register to be (over)written */
 };
 
-const Database *CreateDatabase(const char *path, const char *name) {
+Database *CreateDatabase(const char *path, const char *name) {
 	if (path == NULL && name == NULL) { return NULL; }
 
 	Database *db = (Database *) malloc(sizeof(Database));
@@ -27,7 +30,7 @@ const Database *CreateDatabase(const char *path, const char *name) {
 	db->f = fopen(path_name, "ab");
 	free(path_name);
 	if (db->f == NULL) { FreeDatabase(db); return db; }
-	
+
 	/* Get db->nregs_phys */
 	fseek(db->f, 0, SEEK_END);
 	db->nextFree =
@@ -61,6 +64,11 @@ void FreeDatabase(Database *db) {
 	if (db    != NULL) free(db);
 }
 
+size_t GetSize(const Database* db)
+{
+    return (size_t) db->nreg_phys;
+}
+
 int InsertTweet(Database *db, const Tweet *t) {
 	if (db == NULL || t == NULL) { return 1; }
 	uint32_t rrn = db->nextFree;	// Save actual RRN
@@ -85,13 +93,13 @@ int InsertTweet(Database *db, const Tweet *t) {
 }
 
 int GetTweet(Database *db, uint32_t rrn, Tweet *result) {
-	if (db == NULL || result == NULL) { return 1; }
-	if (rrn >= db->nreg_phys) { return 2; }
+	if (db == NULL || result == NULL) return -1;
+	if (rrn >= db->nreg_phys) return 1;
 
 	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-	fread(&result, sizeof(Tweet), 1, db->f);
-	
-	return 0;
+	FAIL(fread(result, sizeof(Tweet), 1, db->f) == 1, -2);
+
+	return result->flags == ACTIVE ? 0 : 2;
 }
 
 int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nResults) {
@@ -99,13 +107,13 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 		|| name == NULL
 		|| result == NULL
 		|| nResults == NULL) { return 1; }
-	
+
 	Tweet **vtt = (Tweet **) malloc(sizeof(Tweet *));
 	vtt[0] = (Tweet *) malloc(sizeof(Tweet));
 	uint32_t i;
-	
+
 	*nResults = 0;
-	
+
 	for (i = 0; i < db->nreg_phys; i++){
 		GetTweet(db, i, vtt[*nResults]);
 		if (vtt[*nResults]->flags != REMOVED && strcmp(vtt[*nResults]->user, name) == 0){
@@ -114,10 +122,10 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 			vtt[*nResults] = (Tweet *) malloc(sizeof(Tweet));
 		}
 	}
-	
+
 	free(vtt[*nResults]);
-	vtt = (Tweet **) realloc(vtt, (*nResults*sizeof(Tweet *))); 
-	
+	vtt = (Tweet **) realloc(vtt, (*nResults*sizeof(Tweet *)));
+
 	return 0;
 }
 

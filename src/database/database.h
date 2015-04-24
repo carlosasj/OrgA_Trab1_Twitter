@@ -10,7 +10,7 @@
 
 /**
  * This prototype is here to hide the actual Database struct.
- * 
+ *
  * The actual struct shall be defined in the database.c to avoid unnecessary
  * data exposure.
  */
@@ -26,7 +26,7 @@ typedef struct _Database_t Database;
  * \param name Name
  * \return NULL in case of failure.
  */
-const Database *CreateDatabase(const char *path, const char *name);
+Database *CreateDatabase(const char *path, const char *name);
 
 /**
  * Closes and releases all resources associated with the given database.
@@ -55,6 +55,11 @@ int GetTweet(Database *db, uint32_t rrn, Tweet *result);
  */
 int GetTweetsByUser(Database *db, const char *name, Tweet **result,
                     size_t *nResults);
+
+/**
+ * Gets the number of physical entries on the data base.
+ */
+size_t GetSize(const Database *db);
 
 /**
  * Release all Tweets associated to a pointer.
