@@ -72,9 +72,9 @@ size_t GetSize(const Database* db)
 
 int InsertTweet(Database *db, const Tweet *t) {
 	if (db == NULL || t == NULL) { return 1; }
-	uint32_t rrn = db->nextFree;	// Save actual RRN
+	uint32_t rrn = db->nextFree;	// Save RRN to write
 
-	if (db->nextFree == db->nreg_phys){
+	if (db->nextFree == db->nreg_phys){	// Write on the end
 		db->nextFree++;
 		db->nreg_phys++;
 	}
@@ -86,6 +86,7 @@ int InsertTweet(Database *db, const Tweet *t) {
 		free (tt);
 	}
 
+	// Go to a Logically removed position OR go to the end of the file
 	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
 	fwrite(t, sizeof(Tweet), 1, db->f);
 
@@ -113,14 +114,16 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 	uint32_t i;
 
 	*nResults = 0;
-	for (i = 0; i < db->nreg_phys; i++){
+	for (i = 0; i < db->nreg_phys; i++){	// Read the entire database
 		GetTweet(db, i, &((*result)[*nResults]));
+		/* if the Tweet are not removed, and match the user... */
 		if ((*result)[*nResults].flags != REMOVED && strcmp((*result)[*nResults].user, name) == 0){
 			(*nResults)++;
-			*result = (Tweet *) realloc(*result, (*nResults+1)*sizeof(Tweet));
+			*result = (Tweet *) realloc(*result, (*nResults+1)*sizeof(Tweet));	// realloc the vector
 		}
 	}
 
+	// Exclude the last item of the vector
 	*result = (Tweet *) realloc(*result, (*nResults*sizeof(Tweet)));
 
 	return 0;
@@ -141,20 +144,20 @@ int RemoveTweet(Database *db, uint32_t rrn){
 	if (db == NULL) { return 1; }
 	if (rrn >= db->nreg_phys) { return 2; }
 
+	/* Read the tweet */
 	Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
 	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
 	fread(tt, sizeof(Tweet), 1, db->f);
 
-	if (tt->flags == REMOVED) {}
+	if (tt->flags == REMOVED) {} // If it's already removed, then OK.
 	else{
-		tt->flags = REMOVED;
-		tt->nextFreeEntry = db->nextFree;
+		tt->flags = REMOVED;	// Set flags as Removed
+		tt->nextFreeEntry = db->nextFree;	// Set the nextFreeEntry
 		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
 		fwrite(tt, sizeof(Tweet), 1, db->f);
-		db->nextFree = rrn;
-
+		
+		db->nextFree = rrn;	// Update the nextFree
 		db->nreg_log--;
-	}
 
 	free(tt);
 	return 0;
