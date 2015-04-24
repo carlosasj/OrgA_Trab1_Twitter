@@ -11,7 +11,7 @@ WARNINGS = -pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
 	   -Wmissing-include-dirs -Wredundant-decls -Wshadow -Wsign-conversion \
 	   -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused
 
-CFLAGS = $(WARNINGS) -std=c11 -g
+CFLAGS = $(WARNINGS) -std=c11
 
 CPPFLAGS = -D DEBUG
 
@@ -41,19 +41,9 @@ $(EXEC): $(DEPS) $(OBJS)
 	$(CC) -MM -MT "$@ $(@:.dep=.o)" $(CPPFLAGS) $< -MF $@
 
 clean:
-	rm -f *.o *.dep *.tdb $(EXEC);
+	rm -f $(OBJS) $(DEPS) $(EXEC);
 
 zip:
 	zip -r $(EXEC).zip $(SRCS) $(HDRS) Makefile 
 
-run:
-	@./$(EXEC) data.tdb
-
-ifeq ($(MAKECMDGOALS),)
- -include $(DEPS)
-endif
-
-ifeq ($(findstring all, $(MAKECMDGOALS)), all)
- -include $(DEPS)
-endif
-
+-include $(DEPS)
