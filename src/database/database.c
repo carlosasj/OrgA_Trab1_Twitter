@@ -28,6 +28,7 @@ Database *CreateDatabase(const char *path, const char *name) {
 
 	/* Open the File */
 	db->f = fopen(path_name, "rb+");
+	if (db->f == NULL) fopen(path_name, "wb+");
 	free(path_name);
 	if (db->f == NULL) { FreeDatabase(db); return db; }
 
@@ -39,9 +40,10 @@ Database *CreateDatabase(const char *path, const char *name) {
 
 	/* Creates a pseudo-index, to easily insert new registers */
 	if (db->nreg_phys != 0) {
-		uint32_t i = db->nreg_phys -1;
+		uint32_t i = db->nreg_phys;
 		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
 		do{	// Read the registers backwards
+			i--;
 			fseek(db->f, (long int)(i*sizeof(Tweet)), SEEK_SET);
 			fread(tt, sizeof(Tweet), 1, db->f);
 			if (tt->flags == REMOVED){						// If it's Logically Removed...
@@ -51,7 +53,6 @@ Database *CreateDatabase(const char *path, const char *name) {
 				db->nreg_log--;
 				db->nextFree = i;							// ... and update db->nextFree.
 			}
-			i--;
 		}while(i != 0);
 		free(tt);
 	}
