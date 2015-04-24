@@ -100,7 +100,36 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 		|| result == NULL
 		|| nResults == NULL) { return 1; }
 	
+	Tweet **vtt = (Tweet **) malloc(sizeof(Tweet *));
+	vtt[0] = (Tweet *) malloc(sizeof(Tweet));
+	uint32_t i;
+	
+	*nResults = 0;
+	
+	for (i = 0; i < db->nreg_phys; i++){
+		GetTweet(db, i, vtt[*nResults]);
+		if (vtt[*nResults]->flags != REMOVED && strcmp(vtt[*nResults]->user, name) == 0){
+			*nResults++;
+			vtt = (Tweet **) realloc(vtt, (*nResults+1)*sizeof(Tweet *));
+			vtt[*nResults] = (Tweet *) malloc(sizeof(Tweet));
+		}
+	}
+	
+	free(vtt[*nResults]);
+	vtt = (Tweet **) realloc(vtt, (*nResults*sizeof(Tweet *))); 
+	
 	return 0;
+}
+
+void FreeTweetVector(Tweet **vector, size_t nItems) {
+	if (vector == NULL) { return; }
+
+	size_t i;
+
+	for (i = 0; i < nItems; i++){
+		free(vector[i]);
+	}
+	free(vector);
 }
 
 int RemoveTweet(Database *db, uint32_t rrn){
