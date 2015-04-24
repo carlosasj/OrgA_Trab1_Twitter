@@ -158,7 +158,7 @@ int RemoveTweet(Database *db, uint32_t rrn){
 		
 		db->nextFree = rrn;	// Update the nextFree
 		db->nreg_log--;
-
+	}
 	free(tt);
 	return 0;
 }
