@@ -23,28 +23,32 @@ void readUntil(char *dest, size_t len, char stop)
 
 void printTweet(const Tweet* t)
 {
+    printf("--------------------------- Info ---------------------------\n");
     printf("VIEWS: %-10u RETWEETS: %-10u FAVORITES: %-10u\n", t->views,
            t->retweets, t->favs);
-    printf("USER: %-32s LANG: %s\n", t->user, t->language);
-    printf("COORDINATES: %s\n", t->coordinates);
-    printf("\nTEXT:\n%s\n", t->text);
+    printf("COORDINATES: %s LANG: %s \n", t->coordinates, t->language);
+    printf("--------------------------- Text ---------------------------\n");
+    printf("USER: %-32s\n", t->user);
+    printf("TEXT:\n%s\n", t->text);
+    printf("--------------------------- END  ---------------------------\n");
 }
 
 void readTweet(Tweet* t)
 {
     t->flags = ACTIVE;
-    printf("VIEWS: ");
+    printf("Novo Tweet:\n");
+    printf("\tVIEWS: ");
     scanf(" %u", &(t->views));
-    printf("RETWEETS: ");
+    printf("\tRETWEETS: ");
     scanf(" %u", &(t->retweets));
-    printf("FAVORITES: ");
+    printf("\tFAVORITES: ");
     scanf(" %u", &(t->favs));
-    printf("USER: ");
+    printf("\tUSER: ");
     readUntil(t->user, TW_USER_LEN, '\n');
-    printf("LANG: ");
+    printf("\tLANG: ");
     readUntil(t->language, TW_LANG_LEN, '\n');
-    printf("COORDINATES: ");
+    printf("\tCOORDINATES: ");
     readUntil(t->coordinates, TW_COORDINATES_LEN, '\n');
-    printf("TEXT: (CTRL+D para terminar)\n");
+    printf("\tTEXT: (CTRL+D para terminar)\n");
     readUntil(t->text, TW_TEXT_LEN, '\0');
 }

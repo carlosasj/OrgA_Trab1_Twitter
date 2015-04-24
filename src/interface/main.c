@@ -18,14 +18,21 @@ static char readOpt()
 static void printMenu()
 {
     CLEAR();
-    printf("\n\n\n"
+    printf("\n\n      _______       _ _   _            \n");
+    printf("     |__   __|     (_) | | |           \n");
+    printf("        | |_      ___| |_| |_ ___ _ __ \n");
+    printf("        | \\ \\ /\\ / / | __| __/ _ \\ '__|\n");
+    printf("        | |\\ V  V /| | |_| ||  __/ |   \n");
+    printf("        |_| \\_/\\_/ |_|\\__|\\__\\___|_|   \n");
+    
+    printf("\n\n"
         "A - Adicionar Tweet\n"
         "V - Adicionar varios Tweets\n"
         "M - Mostrar todos os Tweets em ordem\n"
         "U - Buscar Tweets por USER\n"
         "R - Buscar Tweets por RRN\n"
         "X - Apagar Tweet\n"
-        "Q - Sair\n\n"
+        "Q - Sair\n\n\n"
     );
 }
 
@@ -96,7 +103,7 @@ int main(int argc, char *argv[])
                         printTweet(&result[i]);
                         readOpt();
                     }
-                    //free(result);
+                    free(result);
                 } else {
                     CLEAR();
                     printf("Nenhum Tweet com USER \"%s\" encontrado.\n", uname);
