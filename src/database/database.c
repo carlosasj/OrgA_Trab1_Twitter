@@ -6,159 +6,127 @@
 
 #include "../utils.h"
 
+#define NO_FRRE_POS UINT32_MAX
+
 struct _Database_t
 {
-	FILE *f;	/* File Pointer */
-	uint32_t nreg_phys;	/* Number of Registers Physical */
-	uint32_t nreg_log;	/* Number of Registers Logical */
-	uint32_t nextFree;	/* Next Register "Free" (logically removed) || Next Register to be (over)written */
+    FILE *dataFile;
+    size_t pEntries;        /* Number of phisical entries */
+    uint32_t nextFreePos;   /* Top of "stack" of free positions */
 };
 
-Database *CreateDatabase(const char *path, const char *name) {
-	if (path == NULL && name == NULL) { return NULL; }
+Database* CreateDatabase(const char* name)
+{
+    Database *db = malloc(sizeof(Database));
+    FATAL(db, 127);
 
-	Database *db = (Database *) malloc(sizeof(Database));
-	if (db == NULL) { return db; }
+    db->dataFile = fopen(name, "r+");
+    if(!db->dataFile) {
+        db->dataFile = fopen(name, "w+");
+        db->nextFreePos = NO_FRRE_POS;
+        db->pEntries = 0;
+    } else {
+        fread(&(db->nextFreePos), sizeof(uint32_t), 1, db->dataFile);
+        FATAL(fseek(db->dataFile, 0, SEEK_END) == 0, 127);
+        db->pEntries = (size_t) ((ftell(db->dataFile) - sizeof(uint32_t))
+                                / sizeof(Tweet));
+    }
 
-	/* Generate Filename */
-	char *path_name = (char *) calloc((strlen(path) + strlen(name) +1), sizeof(char));
-	if (path_name == NULL) { FreeDatabase(db); return db; }
-	strcpy(path_name, path);
-	strcat(path_name, name);
-
-	/* Open the File */
-	db->f = fopen(path_name, "ab");
-	free(path_name);
-	if (db->f == NULL) { FreeDatabase(db); return db; }
-
-	/* Get db->nregs_phys */
-	fseek(db->f, 0, SEEK_END);
-	db->nextFree =
-		db->nreg_log =
-		db->nreg_phys = (uint32_t) ((long int)ftell(db->f))/((long int)sizeof(Tweet));
-
-	/* Creates a pseudo-index, to easily insert new registers */
-	if (db->nreg_phys != 0){
-		uint32_t i = db->nreg_phys -1;
-		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
-		do{	// Read the registers backwards
-			fseek(db->f, (long int)(i*sizeof(Tweet)), SEEK_SET);
-			fread(tt, sizeof(Tweet), 1, db->f);
-			if (tt->flags == REMOVED){						// If it's Logically Removed...
-				tt->nextFreeEntry = db->nextFree;			// ... set the nextFreeEntry...
-				fseek(db->f, (long int)(i*sizeof(Tweet)), SEEK_SET);
-				fwrite(tt, sizeof(Tweet), 1, db->f);		// ... write...
-				db->nreg_log--;
-				db->nextFree = i;							// ... and update db->nextFree.
-			}
-			i--;
-		}while(i != 0);
-		free(tt);
-	}
-
-	return db;
+    return db;
 }
 
-void FreeDatabase(Database *db) {
-	if (db->f != NULL) fclose(db->f);
-	if (db    != NULL) free(db);
+void FreeDatabase(Database* db)
+{
+    if(db) {
+        if(db->dataFile) {
+            fseek(db->dataFile, 0, SEEK_SET);
+            fwrite(&(db->nextFreePos), sizeof(uint32_t), 1, db->dataFile);
+            fclose(db->dataFile);
+        }
+        free(db);
+    }
 }
 
 size_t GetSize(const Database* db)
 {
-    return (size_t) db->nreg_phys;
+    if(db)
+        return db->pEntries;
+    else
+        return SIZE_MAX;
 }
 
-int InsertTweet(Database *db, const Tweet *t) {
-	if (db == NULL || t == NULL) { return 1; }
-	uint32_t rrn = db->nextFree;	// Save actual RRN
+int GetTweet(Database* db, uint32_t rrn, Tweet* result)
+{
+    if(!db) return -1;
+    else if(rrn >= db->pEntries) return 1;
 
-	if (db->nextFree == db->nreg_phys){
-		db->nextFree++;
-		db->nreg_phys++;
-	}
-	else{	// Get the next free RRN
-		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
-		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-		fread(tt, sizeof(Tweet), 1, db->f);
-		db->nextFree = tt->nextFreeEntry;
-		free (tt);
-	}
+    FAIL(fseek(db->dataFile, (rrn * sizeof(Tweet)) + sizeof(uint32_t),
+               SEEK_SET) == 0, -2);
+    fread(result, sizeof(Tweet), 1, db->dataFile);
 
-	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-	fwrite(t, sizeof(Tweet), 1, db->f);
-
-	db->nreg_log++;
-	return 0;
+    return GET_BIT(result->flags, ACTIVE_BIT) ? 0 : -3;
 }
 
-int GetTweet(Database *db, uint32_t rrn, Tweet *result) {
-	if (db == NULL || result == NULL) return -1;
-	if (rrn >= db->nreg_phys) return 1;
+int GetTweetsByUser(Database* db, const char* name, Tweet** result,
+                    size_t* nResults)
+{
+    if(!(db && name && result && nResults))
+        return -1;
 
-	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-	FAIL(fread(result, sizeof(Tweet), 1, db->f) == 1, -2);
+    *result = NULL;
+    *nResults = 0;
 
-	return result->flags == ACTIVE ? 0 : 2;
+    Tweet tmp;
+    for(uint32_t rrn = 0; GetTweet(db, rrn, &tmp) != 1; ++rrn) {
+        printf(">>> %s\n", tmp.user);
+        if(strcmp(tmp.user, name) == 0) {
+            *result = realloc(*result, ((*nResults) + 1) * sizeof(Tweet));
+            FATAL(*result, 127);
+            memcpy(*result + *nResults, &tmp, sizeof(Tweet));
+            ++(*nResults);
+        }
+    }
+    return 0;
 }
 
-int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nResults) {
-	if (db == NULL
-		|| name == NULL
-		|| result == NULL
-		|| nResults == NULL) { return 1; }
+int InsertTweet(Database* db, Tweet* t)
+{
+    if(!(db && t)) {
+        return -1;
+    }
 
-	Tweet **vtt = (Tweet **) malloc(sizeof(Tweet *));
-	vtt[0] = (Tweet *) malloc(sizeof(Tweet));
-	uint32_t i;
+    SET_BIT(t->flags, ACTIVE_BIT);
+    printf(">>>> %Xu\n", t->flags);
 
-	*nResults = 0;
+    if (db->nextFreePos == NO_FRRE_POS) {
+        FAIL(fseek(db->dataFile, sizeof(uint32_t), SEEK_END) == 0, -2);
+        FAIL(fwrite(t, sizeof(Tweet), 1, db->dataFile) == 1, -3);
+        ++(db->pEntries);
+    } else {
+        Tweet tmp;
+        FATAL_MSG(GetTweet(db, db->nextFreePos, &tmp) == 2, 127,
+                  "Corrupt data file detected!");
+        FATAL(fseek(db->dataFile, -sizeof(Tweet), SEEK_CUR) == 0, 127);
+        db->nextFreePos = tmp.nextFreeEntry;
+        FATAL(fwrite(t, sizeof(Tweet), 1, db->dataFile) == 1, 127);
+    }
 
-	for (i = 0; i < db->nreg_phys; i++){
-		GetTweet(db, i, vtt[*nResults]);
-		if (vtt[*nResults]->flags != REMOVED && strcmp(vtt[*nResults]->user, name) == 0){
-			*nResults++;
-			vtt = (Tweet **) realloc(vtt, (*nResults+1)*sizeof(Tweet *));
-			vtt[*nResults] = (Tweet *) malloc(sizeof(Tweet));
-		}
-	}
-
-	free(vtt[*nResults]);
-	vtt = (Tweet **) realloc(vtt, (*nResults*sizeof(Tweet *)));
-
-	return 0;
+    fflush(db->dataFile);
+    return 0;
 }
 
-void FreeTweetVector(Tweet **vector, size_t nItems) {
-	if (vector == NULL) { return; }
+int RemoveTweet(Database* db, uint32_t rrn)
+{
+    Tweet tmp;
+    int err = GetTweet(db, rrn, &tmp);
+    if(err > 0) return 1;
+    FAIL_MSG(err >= 0, -1, "Falhou em localizar registro");
 
-	size_t i;
-
-	for (i = 0; i < nItems; i++){
-		free(vector[i]);
-	}
-	free(vector);
-}
-
-int RemoveTweet(Database *db, uint32_t rrn){
-	if (db == NULL) { return 1; }
-	if (rrn >= db->nreg_phys) { return 2; }
-
-	Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
-	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-	fread(tt, sizeof(Tweet), 1, db->f);
-
-	if (tt->flags == REMOVED) {}
-	else{
-		tt->flags = REMOVED;
-		tt->nextFreeEntry = db->nextFree;
-		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-		fwrite(tt, sizeof(Tweet), 1, db->f);
-		db->nextFree = rrn;
-
-		db->nreg_log--;
-	}
-
-	free(tt);
-	return 0;
+    db->nextFreePos = rrn;
+    tmp.nextFreeEntry = db->nextFreePos;
+    CLEAR_BIT(tmp.flags, ACTIVE_BIT);
+    FATAL(fseek(db->dataFile, -sizeof(Tweet), SEEK_CUR) == 0, 127);
+    FATAL(fwrite(&tmp, sizeof(Tweet), 1, db->dataFile) == 1, 127);
+    fflush(db->dataFile);
+    return 0;
 }

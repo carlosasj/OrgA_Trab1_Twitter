@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Database *db = CreateDatabase("./", argv[1]);
+    Database *db = CreateDatabase(argv[1]);
     FAIL_MSG(db, 1, "Falha ao criar banco de dados!");
 
     char exit = 0;
@@ -74,6 +74,12 @@ int main(int argc, char *argv[])
 
             case 'm':
                 n = GetSize(db);
+                if(n == 0) {
+                    printf("Nenhum Tweet para mostrar.\n");
+                    readOpt();
+                    break;
+                }
+
                 for(size_t i = 0; i < n; ++i) {
                     CLEAR();
                     printf("(%zu/%zu)\n", i+1, n);
@@ -96,7 +102,7 @@ int main(int argc, char *argv[])
                         printTweet(result + i);
                         readOpt();
                     }
-                    //free(result);
+                    free(result);
                 } else {
                     CLEAR();
                     printf("Nenhum Tweet com USER \"%s\" encontrado.\n", uname);
@@ -114,8 +120,8 @@ int main(int argc, char *argv[])
                 } else {
                     printf("RRN Não encontrado!\n");
                 }
-                readOpt();
-                readOpt();
+                readOpt(); /* Retira o \n à mais */
+                readOpt(); /* De fato espara o usuario */
             break;
 
             case 'x':

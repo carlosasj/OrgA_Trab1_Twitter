@@ -26,7 +26,7 @@ typedef struct _Database_t Database;
  * \param name Name
  * \return NULL in case of failure.
  */
-Database *CreateDatabase(const char *path, const char *name);
+Database *CreateDatabase(const char *name);
 
 /**
  * Closes and releases all resources associated with the given database.
@@ -38,7 +38,7 @@ void FreeDatabase(Database *db);
  *
  * Tries to inset a *copy* of the given tweet into the database.
  */
-int InsertTweet(Database *db, const Tweet *t);
+int InsertTweet(Database *db, Tweet *t);
 
 /**
  * Gets a tweet based on the RRN.
@@ -60,11 +60,6 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result,
  * Gets the number of physical entries on the data base.
  */
 size_t GetSize(const Database *db);
-
-/**
- * Release all Tweets associated to a pointer.
- */
- void FreeTweetVector(Tweet **vector, size_t nItems);
 
 /**
  * Removes a tweet.
