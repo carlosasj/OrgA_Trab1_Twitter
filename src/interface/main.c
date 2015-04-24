@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
                 for(size_t i = 0; i < n; ++i) {
                     CLEAR();
                     printf("(%zu/%zu)\n", i+1, n);
-                    if(GetTweet(db, n, &t) == 0) {
+                    if(GetTweet(db, i, &t) == 0) {
                         printTweet(&t);
                     } else {
                         printf("==== APAGADO ====\n");
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
                     for(size_t i = 0; i < n; ++i) {
                         CLEAR();
                         printf("(%zu/%zu)\n", i+1, n);
-                        printTweet(result + i);
+                        printTweet(&result[i]);
                         readOpt();
                     }
                     //free(result);

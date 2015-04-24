@@ -15,7 +15,7 @@ struct _Database_t
 };
 
 Database *CreateDatabase(const char *path, const char *name) {
-	if (path == NULL && name == NULL) { return NULL; }
+	if (path == NULL || name == NULL) { return NULL; }
 
 	Database *db = (Database *) malloc(sizeof(Database));
 	if (db == NULL) { return db; }
@@ -27,7 +27,7 @@ Database *CreateDatabase(const char *path, const char *name) {
 	strcat(path_name, name);
 
 	/* Open the File */
-	db->f = fopen(path_name, "ab");
+	db->f = fopen(path_name, "rb+");
 	free(path_name);
 	if (db->f == NULL) { FreeDatabase(db); return db; }
 
@@ -38,7 +38,7 @@ Database *CreateDatabase(const char *path, const char *name) {
 		db->nreg_phys = (uint32_t) ((long int)ftell(db->f))/((long int)sizeof(Tweet));
 
 	/* Creates a pseudo-index, to easily insert new registers */
-	if (db->nreg_phys != 0){
+	if (db->nreg_phys != 0) {
 		uint32_t i = db->nreg_phys -1;
 		Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
 		do{	// Read the registers backwards
@@ -108,23 +108,19 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 		|| result == NULL
 		|| nResults == NULL) { return 1; }
 
-	Tweet **vtt = (Tweet **) malloc(sizeof(Tweet *));
-	vtt[0] = (Tweet *) malloc(sizeof(Tweet));
+	*result = (Tweet *) malloc(sizeof(Tweet));
 	uint32_t i;
 
 	*nResults = 0;
-
 	for (i = 0; i < db->nreg_phys; i++){
-		GetTweet(db, i, vtt[*nResults]);
-		if (vtt[*nResults]->flags != REMOVED && strcmp(vtt[*nResults]->user, name) == 0){
-			*nResults++;
-			vtt = (Tweet **) realloc(vtt, (*nResults+1)*sizeof(Tweet *));
-			vtt[*nResults] = (Tweet *) malloc(sizeof(Tweet));
+		GetTweet(db, i, &((*result)[*nResults]));
+		if ((*result)[*nResults].flags != REMOVED && strcmp((*result)[*nResults].user, name) == 0){
+			(*nResults)++;
+			*result = (Tweet *) realloc(*result, (*nResults+1)*sizeof(Tweet));
 		}
 	}
 
-	free(vtt[*nResults]);
-	vtt = (Tweet **) realloc(vtt, (*nResults*sizeof(Tweet *)));
+	*result = (Tweet *) realloc(*result, (*nResults*sizeof(Tweet)));
 
 	return 0;
 }

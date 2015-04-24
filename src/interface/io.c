@@ -32,6 +32,7 @@ void printTweet(const Tweet* t)
 
 void readTweet(Tweet* t)
 {
+    t->flags = ACTIVE;
     printf("VIEWS: ");
     scanf(" %u", &(t->views));
     printf("RETWEETS: ");
