@@ -4,7 +4,7 @@
 # Paulo Bardes                    8531932
 # Renato Goto                     8516692
 
-EXEC = lab1
+EXEC = trab1
 
 WARNINGS = -pedantic -Wall -Wextra -Wcast-align -Wcast-qual \
        -Wdisabled-optimization -Wformat=2 -Wlogical-op -Wmissing-declarations \

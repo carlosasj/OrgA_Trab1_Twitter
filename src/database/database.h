@@ -62,11 +62,6 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result,
 size_t GetSize(const Database *db);
 
 /**
- * Release all Tweets associated to a pointer.
- */
- void FreeTweetVector(Tweet **vector, size_t nItems);
-
-/**
  * Removes a tweet.
  *
  * Tries to remove the given tweet based on the given RRN. Note that this

@@ -129,37 +129,26 @@ int GetTweetsByUser(Database *db, const char *name, Tweet **result, size_t *nRes
 	return 0;
 }
 
-void FreeTweetVector(Tweet **vector, size_t nItems) {
-	if (vector == NULL) { return; }
-
-	size_t i;
-
-	for (i = 0; i < nItems; i++){
-		free(vector[i]);
-	}
-	free(vector);
-}
-
 int RemoveTweet(Database *db, uint32_t rrn){
-	if (db == NULL) { return 1; }
-	if (rrn >= db->nreg_phys) { return 2; }
+	if (db == NULL) { return -1; }
+	if (rrn >= db->nreg_phys) { return -2; }
 
 	/* Read the tweet */
-	Tweet *tt = (Tweet *) malloc(sizeof(Tweet));
+	Tweet tt;
 	fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-	fread(tt, sizeof(Tweet), 1, db->f);
+	fread(&tt, sizeof(Tweet), 1, db->f);
 
-	if (tt->flags == REMOVED) {} // If it's already removed, then OK.
-	else{
-		tt->flags = REMOVED;	// Set flags as Removed
-		tt->nextFreeEntry = db->nextFree;	// Set the nextFreeEntry
+	if (tt.flags == REMOVED) { // If it's already removed, then OK.
+        return 1;
+    } else {
+		tt.flags = REMOVED;	// Set flags as Removed
+		tt.nextFreeEntry = db->nextFree;	// Set the nextFreeEntry
 		fseek(db->f, (long int)(rrn*sizeof(Tweet)), SEEK_SET);
-		fwrite(tt, sizeof(Tweet), 1, db->f);
+		fwrite(&tt, sizeof(Tweet), 1, db->f);
 		
 		db->nextFree = rrn;	// Update the nextFree
 		db->nreg_log--;
+        return 0;
 	}
 
-	free(tt);
-	return 0;
 }

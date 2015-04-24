@@ -129,11 +129,15 @@ int main(int argc, char *argv[])
                 printf("RRN? ");
                 scanf("%zu", &n);
                 CLEAR();
-                if(RemoveTweet(db, n) == 0) {
-                    printf("(RRN %zu removido com sucesso!)\n", n);
+                int err = RemoveTweet(db, n);
+                if(err == 0) {
+                    printf("RRN %zu removido com sucesso!\n", n);
+                } else if (err == 1) {
+                    printf("Esse registro já está apagado!\n");
                 } else {
                     printf("RRN Não encontrado!\n");
                 }
+                readOpt();
                 readOpt();
             break;
 
